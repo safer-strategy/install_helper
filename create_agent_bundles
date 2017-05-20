@@ -1,0 +1,90 @@
+#!/bin/bash
+# Create stripped down agent distributions by OS
+# Supports (aix,linux,solaris)
+#
+# Global
+#working_dir=$(basename $(cd $(dirname $0) && pwd))
+containing_dir=$(cd $(dirname $0)/.. && pwd)
+#basename="${containing_dir}/${working_dir}"
+# Distro locations
+vas_dir="${containing_dir}/distro/vas/latest"
+mcu_dir="${containing_dir}/distro/mcu/latest"
+plugin_dir="${containing_dir}/distro/plugin/latest"
+pmu_dir="${containing_dir}/distro/pmu/latest"
+# Bundle Output
+bundle_dir="${containing_dir}/bundles"
+# Local Settings
+join_keytab="${containing_dir}/etc/joiner.keytab"
+
+checkRoot() {
+if [ "$(id -u)" != "0" ]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi }
+
+Main()
+{
+for OS in aix linux solaris
+do
+  os_dir="${bundle_dir}/pasu_${OS}_bundle"
+
+  if [ ! -d ${os_dir} ]; then
+    mkdir -p $os_dir/{client,sudo_plugin,files}
+    mkdir -p $os_dir/client/{linux-x86,linux-x86_64}
+  fi
+
+  # keytab if found
+  if [ -e $join_keytab ];then
+    cp -p $join_keytab $os_dir/files
+  fi
+
+  cp -p ${vas_dir}/install.sh ${os_dir}
+  cp -p ${vas_dir}/preflight.sh ${os_dir}
+  cp -rp ${vas_dir}/client/install-sh-data ${os_dir}/client
+  cp -p ${plugin_dir}/pmpreflight.sh ${os_dir}
+
+  if [ $OS = "aix" ]; then
+    makeAIX
+  elif [ $OS = "linux" ];then
+    makeLinux
+  elif [ $OS = "solaris" ]; then
+    makeSolaris
+  fi
+
+  cp -p $containing_dir/bin/install_join_agent $os_dir
+  cd $bundle_dir
+  tar -cvf ../pub/pasu_$OS.tar ./pasu_${OS}_bundle
+
+done
+}
+
+makeAIX() 
+{
+	# I should consider selecting only vasclnt vasgp packages instead of everything
+  aix_dir="${bundle_dir}/pasu_aix_bundle"
+  cp -rp ${vas_dir}/client/aix* ${aix_dir}/client
+  cp -rp $plugin_dir/sudo_plugin/aix52-rs6k $aix_dir/sudo_plugin
+}
+
+makeLinux()
+{
+  linux_dir="${bundle_dir}/pasu_linux_bundle"
+  cp -rp ${vas_dir}/client/linux-x86/vasclnt*.rpm $linux_dir/client/linux-x86/.
+  cp -rp ${vas_dir}/client/linux-x86/vasgp*.rpm $linux_dir/client/linux-x86/.
+  cp -rp ${vas_dir}/client/linux-x86/preflight $linux_dir/client/linux-x86/.
+  cp -rp ${vas_dir}/client/linux-x86_64/vasclnt*.rpm $linux_dir/client/linux-x86_64/.
+  cp -rp ${vas_dir}/client/linux-x86_64/vasgp*.rpm $linux_dir/client/linux-x86_64/.
+  cp -rp ${vas_dir}/client/linux-x86_64/preflight $linux_dir/client/linux-x86_64/.
+  cp -rp $plugin_dir/sudo_plugin/linux-intel $linux_dir/sudo_plugin
+  cp -rp $plugin_dir/sudo_plugin/linux-x86_64 $linux_dir/sudo_plugin
+}
+
+makeSolaris()
+{
+  solaris_dir="$bundle_dir/pasu_solaris_bundle"
+  cp -rp ${vas_dir}/client/solaris* $solaris_dir/client
+  cp -rp $plugin_dir/sudo_plugin/solaris* $solaris_dir/sudo_plugin
+}
+
+checkRoot
+Main

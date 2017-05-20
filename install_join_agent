@@ -1,0 +1,67 @@
+#!/bin/bash
+# Install VAS and Join AD in the correct location
+
+# Global
+working_dir=$(basename $(cd $(dirname $0) && pwd))
+containing_dir=$(cd $(dirname $0)/.. && pwd)
+basename="${containing_dir}/${working_dir}"
+os_name=`uname -s`
+#
+
+# VAS join info
+ad_domain="strategic.ad"
+ad_dn="dc=strategic,dc=ad"
+unix_ou="ou=unix,dc=strategic,dc=ad"
+joiner_account="joiner"
+joiner_keytab="$basename/files/joiner.keytab"
+VAStool="/opt/quest/bin/vastool"
+
+checkRoot() {
+if [ "$(id -u)" != "0" ]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi }
+
+set_ou(){
+case $os_name in
+  "Linux")
+    ou_name="linux"
+    ou_final="ou=${ou_name},${unix_ou}"
+  ;;
+
+  "SunOS")
+    ou_name="solaris"
+    ou_final="ou=${ou_name},${unix_ou}"
+  ;;
+
+  "AIX")
+    ou_name="aix"
+    ou_final="ou=${ou_name},${unix_ou}"
+  ;;
+
+  "HP-UX")
+    ou_name="hpux"
+    ou_final="ou=${ou_name},${unix_ou}"
+  ;;
+
+  *)
+    echo $"OS unsupported by this script, Linux, SunOS, AIX, HP-UX only"
+  exit 1
+esac
+
+}
+installVAS() {
+$basename/install.sh -qa vasclnt vasgp
+}
+
+joinVASagent() {
+# Join adding to the Unix OU
+$VAStool -u  $joiner_account -k $joiner_keytab join -f -c "$unix_ou" $ad_domain
+# Join to the OS based OU
+# $VAStool -u  $joiner_account -k $joiner_keytab join -f -c "$ou_final" $ad_domain
+}
+
+checkRoot
+check_os
+installVAS
+joinVASagent

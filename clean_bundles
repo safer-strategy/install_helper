@@ -1,0 +1,10 @@
+#!/bin/bash
+# Clean up the bundles before rebuilding
+containing_dir=$(cd $(dirname $0)/.. && pwd)
+
+#for i in aix linux solaris
+#do
+  rm -rf ${containing_dir}/bundles/*
+#done
+
+
