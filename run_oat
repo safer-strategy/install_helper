@@ -37,4 +37,11 @@ oat_changeowner -r -t process -m -b $OATwork -u $Matched -d $Dir
 rollbackOAT() {
 oat_changeowner -r -p rollback -b $OATwork
 }
+
+
+# Begin Processing
 checkRoot
+processOAT
+testOAT
+#runOAT
+#rollbackOAT
