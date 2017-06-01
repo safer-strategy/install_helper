@@ -12,9 +12,9 @@ os_name=`uname -s`
 ad_domain="strategic.ad"
 ad_dn="dc=strategic,dc=ad"
 unix_ou="ou=unix,dc=strategic,dc=ad"
-joiner_account="joiner"
 joiner_keytab="$basename/files/joiner.keytab"
 VAStool="/opt/quest/bin/vastool"
+joiner="centos7a-joiner@STRATEGIC.AD"
 
 checkRoot() {
 if [ "$(id -u)" != "0" ]; then
@@ -51,17 +51,21 @@ esac
 
 }
 installVAS() {
+if [ ! -x $VAStool ]; then
 $basename/install.sh -qa vasclnt vasgp
+fi
 }
 
 joinVASagent() {
 # Join adding to the Unix OU
-$VAStool -u  $joiner_account -k $joiner_keytab join -f -c "$unix_ou" $ad_domain
+#$VAStool -u  $joiner_account -k $joiner_keytab join -f -c "$unix_ou" $ad_domain
+#$VAStool -u  $joiner -w $pass join -f -c $unix_ou $ad_domain
 # Join to the OS based OU
-# $VAStool -u  $joiner_account -k $joiner_keytab join -f -c "$ou_final" $ad_domain
+$VAStool -u $joiner -k $joiner_keytab join -f -c "$ou_final" $ad_domain
 }
 
 checkRoot
-check_os
+set_ou
+#echo "OU set to: ${ou_final}"
 installVAS
 joinVASagent
