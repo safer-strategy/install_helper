@@ -1,0 +1,40 @@
+#!/bin/bash
+
+PATH="$PATH:/opt/quest/libexec/oat"
+# Global
+working_dir=$(basename $(cd $(dirname $0) && pwd))
+containing_dir=$(cd $(dirname $0)/.. && pwd)
+basename="${containing_dir}/${working_dir}"
+os_name=`uname -s`
+#
+ADadmin="Administrator"
+ADusers="${containing_dir}/oat_adusers"
+Password="/etc/passwd"
+Matched="${containing_dir}/matched_users"
+OATwork="${containing_dir}/oatwork"
+# Set the Directory to process 
+Dir="/home"
+
+OATdir="/opt/quest/libexec/oat/"
+
+checkRoot() {
+if [ "$(id -u)" != "0" ]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi }
+
+processOAT() {
+oat_adlookup -u $ADadmin -o $ADusers user
+oat_match -a $ADusers -x $Password user > $Matched
+}
+
+runOAT() {
+oat_changeowner -r process -m -b $OATwork -u $Matched -d $Dir
+}
+testOAT() {
+oat_changeowner -r -t process -m -b $OATwork -u $Matched -d $Dir
+}
+rollbackOAT() {
+oat_changeowner -r -p rollback -b $OATwork
+}
+checkRoot
