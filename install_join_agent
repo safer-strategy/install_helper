@@ -1,6 +1,5 @@
 #!/bin/bash
 # Install VAS and Join AD in the correct location
-
 # Global
 working_dir=$(basename $(cd $(dirname $0) && pwd))
 containing_dir=$(cd $(dirname $0)/.. && pwd)
@@ -15,6 +14,8 @@ unix_ou="ou=unix,dc=strategic,dc=ad"
 joiner_keytab="$basename/files/joiner.keytab"
 VAStool="/opt/quest/bin/vastool"
 joiner="centos7a-joiner@STRATEGIC.AD"
+#PolicySvr="centos7a.strategic.ad"
+PolicySvr="PMsudo"
 
 checkRoot() {
 if [ "$(id -u)" != "0" ]; then
@@ -58,10 +59,47 @@ fi
 
 joinVASagent() {
 # Join adding to the Unix OU
-#$VAStool -u  $joiner_account -k $joiner_keytab join -f -c "$unix_ou" $ad_domain
 #$VAStool -u  $joiner -w $pass join -f -c $unix_ou $ad_domain
 # Join to the OS based OU
 $VAStool -u $joiner -k $joiner_keytab join -f -c "$ou_final" $ad_domain
+}
+
+installPlugin() {
+# Install the policy plugin
+if [ ! -x /opt/quest/sbin/pmjoin_plugin ];then
+  Machine=`uname -m`
+  if [ "$os_name" = "Linux" ] && [ "$Machine" = "x86_64" ]; then
+    rpm -i $basename/sudo_plugin/linux-x86_64/qpm-plugin-*.rpm
+  elif [ "$os_name" = "Linux" ] && [ "$Machine" = "x86" ]; then
+    rpm -i $basename/sudo_plugin/linux-intel/qpm-plugin-*.rpm
+    echo "Im linux x86"
+  elif [ "$os_name" = "AIX" ]; then
+    echo "Im AIX"
+    # Install AIX Package
+  elif [ "$os_name" = "Solaris" ]; then
+    # pkgadd -d
+    echo "Solaris"
+  else 
+    echo "Unsupported Platform"
+  fi
+fi
+}
+
+joinPlugin() {
+  # Joins the plugin to the Policy group for keystroke logging only
+  echo "Test1234" | /opt/quest/sbin/pmjoin_plugin -q -b -o -a $PolicySvr
+  # Joins plugin with centralized policy and keystroke logging
+#  echo "Test1234" | /opt/quest/sbin/pmjoin_plugin -q -b -a $PolicySvr
+  if [ -f "/etc/sudoers" ] ; then
+    echo "Defaults log_output" >> /etc/sudoers
+  else
+    echo "/etc/sudoers NOT FOUND, Manually add \"Defaults log_output\" to the sudoers file"
+  fi 
+}
+
+configUserMap() {
+cp $UserMap /etc/usermap
+$VAStool configure vas vas_auth user-map-files /etc/usermap
 }
 
 checkRoot
@@ -69,3 +107,6 @@ set_ou
 #echo "OU set to: ${ou_final}"
 installVAS
 joinVASagent
+configUserMap
+installPlugin
+joinPlugin
