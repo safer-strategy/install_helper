@@ -72,10 +72,9 @@ if [ ! -x /opt/quest/sbin/pmjoin_plugin ];then
     rpm -i $basename/sudo_plugin/linux-x86_64/qpm-plugin-*.rpm
   elif [ "$os_name" = "Linux" ] && [ "$Machine" = "x86" ]; then
     rpm -i $basename/sudo_plugin/linux-intel/qpm-plugin-*.rpm
-    echo "Im linux x86"
   elif [ "$os_name" = "AIX" ]; then
-    echo "Im AIX"
     # Install AIX Package
+    installp -ac -d qpm-plugin*.bff all
   elif [ "$os_name" = "Solaris" ]; then
     # pkgadd -d
     echo "Solaris"
