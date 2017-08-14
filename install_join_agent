@@ -17,6 +17,16 @@ joiner="centos7a-joiner@STRATEGIC.AD"
 #PolicySvr="centos7a.strategic.ad"
 PolicySvr="PMsudo"
 
+Main() {
+	checkRoot
+	set_ou
+	installVAS
+	joinVASagent
+	configUserMap
+	installPlugin
+	joinPlugin
+}
+
 checkRoot() {
 if [ "$(id -u)" != "0" ]; then
    echo "This script must be run as root" 1>&2
@@ -90,7 +100,9 @@ joinPlugin() {
   # Joins plugin with centralized policy and keystroke logging
 #  echo "Test1234" | /opt/quest/sbin/pmjoin_plugin -q -b -a $PolicySvr
   if [ -f "/etc/sudoers" ] ; then
-    echo "Defaults log_output" >> /etc/sudoers
+    if ! grep log_output /etc/sudoers; then
+	    echo "Defaults log_output" >> /etc/sudoers
+	  fi
   else
     echo "/etc/sudoers NOT FOUND, Manually add \"Defaults log_output\" to the sudoers file"
   fi 
@@ -101,11 +113,4 @@ cp $UserMap /etc/usermap
 $VAStool configure vas vas_auth user-map-files /etc/usermap
 }
 
-checkRoot
-set_ou
-#echo "OU set to: ${ou_final}"
-installVAS
-joinVASagent
-configUserMap
-installPlugin
-joinPlugin
+Main
